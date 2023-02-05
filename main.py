@@ -1,12 +1,28 @@
 
+import subprocess
 import requests
 import json
+import base64
 
 buf = json.load(open("secret", 'r'))
-UID = buf['UID']
-SECRET = buf['SECRET']
+PRELOAD_BUF = buf
 
-HEADERS  = {"Accept": "application/json",    "Content-Type": "application/json",    "Authorization": "Bearer " + SECRET}
+# important data
+UID = buf['UID']
+CID = buf['CLIENTID']
+CSECRET = buf["CLIENTSECRET"]
+REFRESHTOKEN = buf['REFRESHTOKEN']
+ACCESSTOKEN = buf['ACCESSTOKEN']
+
+# constants
+SCOPE = "playlist-modify-private,playlist-modify-public,playlist-read-private,playlist-read-collaborative,user-read-email"
+HEADERS  = {
+    "Accept": "application/json",
+    "Content-Type": "application/json",
+    "Authorization": "Bearer " + ACCESSTOKEN
+}
+REDIRECT = "https://localhost"
+
 
 # ------------------------------- #
 # classes
@@ -42,7 +58,8 @@ class Song:
     def __init__(self, link: str):
         """Get data about song"""
         data = get_song_data_raw(link)
-        
+        print(data)
+
         # song general
         self.name = data['name']
         self.link = data['external_urls']['spotify']
@@ -105,6 +122,9 @@ class Recommendation:
         if self._collected: return self.recommendations
         self._collected = True
         res = requests.get(self.generate_config_string(), headers=HEADERS)
+        if res.status_code != 200:
+            refresh_token_validity()
+            res = requests.get(ll, headers=HEADERS)
         # parse
         self.recommendations = []
         result = res.json()
@@ -117,6 +137,48 @@ class Recommendation:
 # ------------------------------- #
 # functions
 
+def refresh_token_validity():
+    """Checks if the token is valid."""
+    global HEADERS
+
+    url = 'https://accounts.spotify.com/api/token'
+
+    message = f"{CID}:{CSECRET}"
+    message_bytes = message.encode('ascii')
+    base64_bytes = base64.b64encode(message_bytes)
+    base64_message = base64_bytes.decode('ascii')
+
+    data = {
+        "grant_type": "refresh_token",
+        "refresh_token": REFRESHTOKEN,
+    }
+
+    headers = {
+        "Authorization": f"Basic {base64_message}",
+        "Content-Type": "application/x-www-form-urlencoded",
+    }
+
+    res = requests.post(url, data=data, headers=headers)
+    # print(res.json())
+
+    # save data in file
+    new_data = {
+        "UID": UID,
+
+        "CLIENTID": CID,
+        "CLIENTSECRET": CSECRET,
+
+        # "REFRESHTOKEN": res.json()['refresh_token'],
+        "REFRESHTOKEN": REFRESHTOKEN,
+        "ACCESSTOKEN": res.json()['access_token']
+    }
+    # reset variables
+    global ACCESSTOKEN
+    ACCESSTOKEN = new_data['ACCESSTOKEN']
+    with open("secret", 'w') as f:
+        json.dump(new_data, f, indent=4)
+    HEADERS["Authorization"] = f"Bearer {ACCESSTOKEN}"
+
 def get_playlist_data_raw(link: str) -> dict:
     """Returns the data of the given playlist."""
     ll = "https://api.spotify.com/v1/playlists/"
@@ -124,6 +186,9 @@ def get_playlist_data_raw(link: str) -> dict:
         ll += link.split('?')[0].split('/')[-1]
     else: ll = link
     res = requests.get(ll, headers=HEADERS)
+    if res.status_code != 200:
+        refresh_token_validity()
+        res = requests.get(ll, headers=HEADERS)
     return res.json()
 
 def get_song_data_raw(link: str) -> dict:
@@ -131,7 +196,13 @@ def get_song_data_raw(link: str) -> dict:
     ll = "https://api.spotify.com/v1/tracks/"
     if len(link.split('?')) > 1:
         ll += link.split('?')[0].split('/')[-1]
+    else: ll = link
+    # have the track link
     res = requests.get(ll, headers=HEADERS)
+    if res.status_code != 200:
+        refresh_token_validity()
+        res = requests.get(ll, headers=HEADERS)
+    # got the data
     return res.json()
 
 def create_playlist(name: str, des: str, public: bool = True):
@@ -143,8 +214,12 @@ def create_playlist(name: str, des: str, public: bool = True):
         "description": des,
         "public": public
     }
-    r = requests.post(route, data=json.dumps(data), headers=HEADERS)
-    pid = r.json()['id']
+    handle_token_validity()
+    res = requests.post(route, data=json.dumps(data), headers=HEADERS)
+    if res.status_code != 200:
+        refresh_token_validity()
+        res = requests.get(ll, headers=HEADERS)
+    pid = res.json()['id']
     return Playlist("https://api.spotify.com/v1/playlists/" + pid)
 
 def add_song_to_playlist(song_link: str, playlist_link: str, uri: str = None):
@@ -157,6 +232,9 @@ def add_song_to_playlist(song_link: str, playlist_link: str, uri: str = None):
     data = {
         "uris": [song_uri]
     }
+    if res.status_code != 200:
+        refresh_token_validity()
+        res = requests.get(ll, headers=HEADERS)
     r = requests.post(f"https://api.spotify.com/v1/playlists/{playlist_id}/tracks", data=json.dumps(data), headers=HEADERS)
     return r.json()
 
@@ -165,12 +243,12 @@ def add_song_to_playlist(song_link: str, playlist_link: str, uri: str = None):
 # main
 
 # playlist = create_playlist("sample1", "sample for generating playlists")
-playlist = Playlist("https://open.spotify.com/playlist/7eMqBWauas5mg8wKkHgldg?si=16ebdfa6e29243a8")
-
-# endpoint
+playlist = Playlist("https://open.spotify.com/playlist/7eMqBWauas5mg8wKkHgldg?si=52070a388cba451c")
 endpoint = "https://api.spotify.com/v1/recommendations?"
-
 seed_song = Song('https://open.spotify.com/track/45HHTHXv7gQ5q2r89ui2Fy?si=28c6f22236904025')
+
+
+print(seed_song)
 
 rec = Recommendation(limit=10, market="US", seed_tracks=seed_song.get_song_uri_id(), target_danceability=0.8)
 rec.get_recommendations()
