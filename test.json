@@ -1,0 +1,39 @@
+{
+  "collaborative": false,
+  "description": "test :D",
+  "external_urls": {
+    "spotify": "https://open.spotify.com/playlist/2TZncIRe50oV7EHP1kZdK2"
+  },
+  "followers": {
+    "href": null,
+    "total": 0
+  },
+  "href": "https://api.spotify.com/v1/playlists/2TZncIRe50oV7EHP1kZdK2",
+  "id": "2TZncIRe50oV7EHP1kZdK2",
+  "images": [],
+  "name": "Testing",
+  "owner": {
+    "display_name": "pet",
+    "external_urls": {
+      "spotify": "https://open.spotify.com/user/ivh5jy0syljs6hc097zn62iw9"
+    },
+    "href": "https://api.spotify.com/v1/users/ivh5jy0syljs6hc097zn62iw9",
+    "id": "ivh5jy0syljs6hc097zn62iw9",
+    "type": "user",
+    "uri": "spotify:user:ivh5jy0syljs6hc097zn62iw9"
+  },
+  "primary_color": null,
+  "public": true,
+  "snapshot_id": "MSw1Njg0NTkyYTBhZDAxOTFhYzFmNWQzMTdkNDgxOGI1YzQ0YWFhYjBj",
+  "tracks": {
+    "href": "https://api.spotify.com/v1/playlists/2TZncIRe50oV7EHP1kZdK2/tracks",
+    "items": [],
+    "limit": 100,
+    "next": null,
+    "offset": 0,
+    "previous": null,
+    "total": 0
+  },
+  "type": "playlist",
+  "uri": "spotify:playlist:2TZncIRe50oV7EHP1kZdK2"
+}
