@@ -36,6 +36,7 @@ class Playlist:
         self.name = data['name']
         self.description = data['description']
         self.link = data['external_urls']['spotify']
+        self.id = data['id']
         # stats
         self.collaborative = data['collaborative']
         self.followers = data['followers']['total']
@@ -46,19 +47,20 @@ class Playlist:
         """Return string representation of playlist"""
         return f"{self.name} ({self.followers} followers)"
     
-    def add_track(self, link: str = None, song: "Song" = None):
-        """Add a track to the playlist"""
-        # append items to playlist
-        if link:
-            add_song_to_playlist(link, self.link)
-        elif song:
-            add_song_to_playlist(song.link, self.link, uri = song.uri)
+    def add_songs(self, songs: list):
+        """Add songs to playlist"""
+        # print([x.uri for x in songs])
+        base = f"https://api.spotify.com/v1/playlists/{self.id}/tracks?uris={'%2C'.join([x.uri.replace(':', '%3A') for x in songs])}"
+        res = requests.post(base, headers=HEADERS)
+        if res.status_code != 200:
+            refresh_token_validity()
+            res = requests.post(base, headers=HEADERS)
+        return res.json()
 
 class Song:
     def __init__(self, link: str):
         """Get data about song"""
         data = get_song_data_raw(link)
-        print(data)
 
         # song general
         self.name = data['name']
@@ -111,27 +113,28 @@ class Recommendation:
 
     def get_config_aspect_str(self, aspect: str, value: str):
         """Return the aspect string"""
-        return f"{aspect}={value}&"
+        return f"{aspect}={value}"
 
     def generate_config_string(self):
         """Generate search configuration string"""
-        return f"{self.ENDPOINT}" + "".join([self.get_config_aspect_str(aspect, value) for aspect, value in self.args.items() if value != '_'])
+        return f"{self.ENDPOINT}" + "&".join([self.get_config_aspect_str(aspect, value) for aspect, value in self.args.items() if value != '_'])
     
     def get_recommendations(self):
         """Get recommendations from spotify"""
         if self._collected: return self.recommendations
         self._collected = True
+        # get data
         res = requests.get(self.generate_config_string(), headers=HEADERS)
         if res.status_code != 200:
             refresh_token_validity()
             res = requests.get(ll, headers=HEADERS)
-        # parse
+        # parse)
         self.recommendations = []
         result = res.json()
         tracks = result['tracks']
         for track in tracks:
-            print(track['external_urls']['spotify'])
-            self.recommendations.append(Song(track['external_urls']['spotify']))
+            # print(track["href"])
+            self.recommendations.append(Song(track["href"]))
         return self.get_recommendations()
 
 # ------------------------------- #
@@ -140,27 +143,23 @@ class Recommendation:
 def refresh_token_validity():
     """Checks if the token is valid."""
     global HEADERS
-
+    print("Refreshing TOKEN")
     url = 'https://accounts.spotify.com/api/token'
-
     message = f"{CID}:{CSECRET}"
     message_bytes = message.encode('ascii')
     base64_bytes = base64.b64encode(message_bytes)
     base64_message = base64_bytes.decode('ascii')
-
     data = {
         "grant_type": "refresh_token",
         "refresh_token": REFRESHTOKEN,
     }
-
     headers = {
+        "Accept": "application/json",
         "Authorization": f"Basic {base64_message}",
         "Content-Type": "application/x-www-form-urlencoded",
     }
-
     res = requests.post(url, data=data, headers=headers)
     # print(res.json())
-
     # save data in file
     new_data = {
         "UID": UID,
@@ -178,6 +177,7 @@ def refresh_token_validity():
     with open("secret", 'w') as f:
         json.dump(new_data, f, indent=4)
     HEADERS["Authorization"] = f"Bearer {ACCESSTOKEN}"
+    print("Token Refreshed")
 
 def get_playlist_data_raw(link: str) -> dict:
     """Returns the data of the given playlist."""
@@ -198,6 +198,7 @@ def get_song_data_raw(link: str) -> dict:
         ll += link.split('?')[0].split('/')[-1]
     else: ll = link
     # have the track link
+    # print(ll)
     res = requests.get(ll, headers=HEADERS)
     if res.status_code != 200:
         refresh_token_validity()
@@ -222,23 +223,6 @@ def create_playlist(name: str, des: str, public: bool = True):
     pid = res.json()['id']
     return Playlist("https://api.spotify.com/v1/playlists/" + pid)
 
-def add_song_to_playlist(song_link: str, playlist_link: str, uri: str = None):
-    """Add a song to the given playlist."""
-    # get song uri
-    song_uri = get_song_data_raw(song_link)['uri'] if not uri else uri
-    # get playlist id
-    playlist_id = playlist_link.split('/')[-1]
-    # post data to spotify url
-    data = {
-        "uris": [song_uri]
-    }
-    if res.status_code != 200:
-        refresh_token_validity()
-        res = requests.get(ll, headers=HEADERS)
-    r = requests.post(f"https://api.spotify.com/v1/playlists/{playlist_id}/tracks", data=json.dumps(data), headers=HEADERS)
-    return r.json()
-
-
 # ------------------------------- #
 # main
 
@@ -247,32 +231,9 @@ playlist = Playlist("https://open.spotify.com/playlist/7eMqBWauas5mg8wKkHgldg?si
 endpoint = "https://api.spotify.com/v1/recommendations?"
 seed_song = Song('https://open.spotify.com/track/45HHTHXv7gQ5q2r89ui2Fy?si=28c6f22236904025')
 
-
-print(seed_song)
-
 rec = Recommendation(limit=10, market="US", seed_tracks=seed_song.get_song_uri_id(), target_danceability=0.8)
 rec.get_recommendations()
+playlist.add_songs(rec.get_recommendations())
 
-for r in rec.get_recommendations():
-    print(r)
 
-# # parameters
-# limit = 10
-# market = "US"
-# seed_genres = "indie"
-# seed_tracks = seed_song.get_song_uri_id()
-# target_danceability = 0.8
 
-# print(seed_song.get_song_uri_id())
-
-# query = f'{endpoint}limit={limit}&market={market}&seed_tracks={seed_tracks}&target_danceability={target_danceability}'
-# response = requests.get(query, headers=HEADERS)
-
-# # output
-# json_response = response.json()
-
-# uris = []
-# for i in json_response['tracks']:
-#     uris.append(i)
-#     print(i)
-#     print(f"\"{i['name']}\" by {i['artists'][0]['name']}")
