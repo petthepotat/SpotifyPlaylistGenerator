@@ -74,9 +74,32 @@ class Song:
         self.album_cover = data['album']['images'][0]['url']
         # stats
         self.popularity = data['popularity']
-        self.duration = data['duration_ms']
+        self.duration = data['duration_ms'] / 1000
         self.explicit = data['explicit']
+        # track features -- the stats of power
+        self.features = self.get_song_features()
+        self.danceability = self.features['danceability']
+        self.energy = self.features['energy']
+        self.key = self.features['key']
+        self.loudness = self.features['loudness']
+        self.mode = self.features['mode']
+        self.speechiness = self.features['speechiness']
+        self.acousticness = self.features['acousticness']
+        self.instrumentalness = self.features['instrumentalness']
+        self.liveness = self.features['liveness']
+        self.valence = self.features['valence']
+        self.tempo = self.features['tempo']
+        self.time_signature = self.features['time_signature']
     
+    def get_song_features(self):
+        """Get the song features"""
+        target = "https://api.spotify.com/v1/audio-features/" + self.get_song_uri_id()
+        res = requests.get(target, headers=HEADERS)
+        if res.status_code > 300:
+            refresh_token_validity()
+            res = requests.get(target, headers=HEADERS)
+        return res.json()
+
     def get_song_uri_id(self):
         """Return the uri id of the song"""
         return self.uri.split(':')[-1]
@@ -251,10 +274,9 @@ def create_playlist(name: str, des: str, public: bool = True):
         "description": des,
         "public": public
     }
-    handle_token_validity()
     res = requests.post(route, data=json.dumps(data), headers=HEADERS)
-    if res.status_code != 200:
+    if res.status_code > 300:
         refresh_token_validity()
-        res = requests.get(ll, headers=HEADERS)
+        res = requests.post(route, data=json.dumps(data), headers=HEADERS)
     pid = res.json()['id']
     return Playlist("https://api.spotify.com/v1/playlists/" + pid)
