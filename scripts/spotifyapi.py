@@ -186,7 +186,7 @@ class Recommendation:
         res = requests.get(self.generate_config_string(), headers=HEADERS)
         if res.status_code != 200:
             refresh_token_validity()
-            res = requests.get(ll, headers=HEADERS)
+            res = requests.get(self.generate_config_string(), headers=HEADERS)
         # parse)
         self.recommendations = []
         result = res.json()
@@ -195,6 +195,11 @@ class Recommendation:
             # print(track["href"])
             self.recommendations.append(Song(track["href"]))
         return self.get_recommendations()
+    
+    @classmethod
+    def generate_seed_song_array(cls, songs: list):
+        """Generate seed song array"""
+        return ','.join([song.get_song_uri_id() for song in songs])
 
 # ------------------------------- #
 # functions
