@@ -1,15 +1,13 @@
 import subprocess
 import sys
+import os
 
-from typing import List
 import PIL
+from PIL import Image, ImageDraw, ImageOps, ImageFilter
 
+from typing import List, Tuple
 
 """
-
-
-ffmpeg -i input1.mp3 -t 15 -i input2.mp3 -t 15 -filter_complex "[0:0][1:0]concat=n=2:v=0:a=1[out]" -map "[out]" output.mp3
-
 
 ffmpeg options:
     -i: input file
@@ -55,7 +53,7 @@ VIDEOCODECDEF = "libx264"
 
 
 # audio
-SILENCE = ".blob/silence.wav"
+SILENCE = ".blob/silence.mp3"
 AUDIOCODEC = "-codec:a libmp3lame"
 AUDIOQUALITY = "-qscale:a 2"
 CONCATFILE = '-f concat -i ".blob/concat.txt"'
@@ -64,70 +62,114 @@ CONCATFILE = '-f concat -i ".blob/concat.txt"'
 # functions
 
 
-class FFmpegImageVideoGenerator:
-    @classmethod
-    def make_pair(cls, command: str, value: str):
-        """Make a pair of a command and a value"""
-        return f"{command} {value}"
+def generate_image(
+    image_file,
+    colors: List[Tuple[int, int, int]],
+    target_path: str = "result.jpg",
+):
+    """Generate an image file"""
+    # create a new image
+    back = Image.new("RGBA", (1920, 1080), (0, 0, 0))
+    # open central image
+    c_image = Image.open(image_file).convert("RGBA")
+    # draw the background
+    draw = ImageDraw.Draw(back)
+    # literlaly manual grayscale maths
+    for i in range(1080):
+        color = (
+            int(colors[0][0] + (colors[2][0] - colors[0][0]) * i / 1080),
+            int(colors[0][1] + (colors[2][1] - colors[0][1]) * i / 1080),
+            int(colors[0][2] + (colors[2][2] - colors[0][2]) * i / 1080),
+        )
+        draw.line([(0, i), (1920, i)], fill=color)
 
-    # ------------------------------- #
+    # center image on gradient back
+    bw, bh = back.size
+    iw, ih = c_image.size
+    offset = ((bw - iw) // 2, (bh - ih) // 2)
+    # add shadow to image
+    shadow = ImageOps.colorize(
+        # the white = (255, 255, 255, 100) reduces alpha value
+        ImageOps.invert(c_image.convert("L")),
+        (0, 0, 0, 0),
+        (255, 255, 255, 255),
+    )
+    # resize image ==> then scale to background
+    # shadow = shadow.resize((1920, 1920), Image.ANTIALIAS)
+    shadow = shadow.filter(ImageFilter.GaussianBlur(radius=15))
+    # steal alpha + reduce alpha
+    # r, g, b, ash = shadow.convert("RGBA").split()
+    # a = ash.point(lambda x: 100)
+    # remerge
+    # shadow = Image.merge("RGBA", (r, g, b, ash))
 
-    def __init__(self, image_file: str, input_files: List[str]):
-        """
-        FFmpeg handler
-        given:
-        - input image (the background of the entire video)
-        - file (contains all the audio tracks to be joined together)
-        - duration (the duration of the video)
-        - output file (the output file)
-        """
-        self.target_file = target
-        # args
-        self.input_file = self.make_pair(TARGET_IMG, value)
-        self.video_codec = ""
+    shadow_offset = (bw - shadow.width) // 2 + 15, (bh - shadow.height) // 2 + 15
+    back.paste(shadow, shadow_offset)
+    # add image to background
+    back.paste(c_image, offset)
 
-    def run_process(self):
-        """Run the ffmpeg process"""
-        # build the command
-        command = [FFMPEGPATH]
-        # add the options
-        for key, value in self.options.items():
-            command.append(key)
-            command.append(value)
-        # add the target
-        command.append(self.target)
+    # save the image
+    back = back.convert("RGB")
+    back.save(target_path)
 
-        # run the process
-        process = subprocess.Popen(command, stdout=subprocess.PIPE)
-        # read output
-        output, error = process.communicate()
-        print(output.decode().strip())
-        print(error)
+
+def generate_mp4(image_file, audio_files, output_file):
+    audio_list_file = "audio_list.txt"
+
+    with open(audio_list_file, "w") as f:
+        for audio_file in audio_files:
+            f.write("file '{}'\n".format(audio_file))
+            f.write("file '{}'\n".format(SILENCE))
+
+    if not os.path.exists(SILENCE):
+        # create silence.wav
+        subprocess.run(
+            [
+                "ffmpeg",
+                "-f",
+                "lavfi",
+                "-i",
+                "anullsrc=r=48000:cl=stereo",
+                "-t",
+                "3",
+                SILENCE,
+            ]
+        )
+
+    # concatenate audio files
+    cmd = [
+        "ffmpeg",
+        "-f",
+        "concat",
+        "-safe",
+        "0",
+        "-i",
+        audio_list_file,
+        "-loop",
+        "1",
+        "-i",
+        image_file,
+        "-c:v",
+        "libx264",
+        "-c:a",
+        "aac",
+        "-pix_fmt",
+        "yuv420p",
+        "-shortest",
+        output_file,
+    ]
+    subprocess.run(cmd)
+
+    # remove audio_list_file and silence.wav
+    os.remove(audio_list_file)
+    # os.remove("silence.wav")
 
 
 # ------------------------------- #
 # testing
 
+generate_image(
+    ".blob/image.jpg", [(255, 195, 0), (245, 176, 65), (240, 178, 12)], ".blob/temp.jpg"
+)
 
-command = [
-    FFMPEGPATH,
-    LOOPARG,
-    LOOPDEF,
-    "-i",
-    ".blob/image.jpg",
-    VIDEOCODECARG,
-    VIDEOCODECDEF,
-    TIMEDURATIONARG,
-    "10",
-    PIXELFORMATARG,
-    PIXELFORMATDEF,
-    "output.mp4",
-]
-
-print(command)
-
-process = subprocess.Popen(command, stdout=subprocess.PIPE)
-# read output
-output, error = process.communicate()
-print(output.decode().strip())
-print(error)
+# generate_mp4(".blob/temp.jpg", ["assets/test.mp3", "assets/test.mp3"], "result.mp4")
