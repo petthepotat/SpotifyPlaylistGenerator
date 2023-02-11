@@ -22,4 +22,5 @@ def download_songs(songs: List[str]):
     # Read the output of the Node.js process
     output, error = process.communicate()
     # Print the output of the Node.js process
-    print(output.decode())
+    print(output.decode().strip())
+    print(error)

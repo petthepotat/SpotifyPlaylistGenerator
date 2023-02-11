@@ -23,6 +23,7 @@ function download_audio(parse, download_path) {
     stream.on('progress', (chunkLength, downloaded, total) => {
         const percent = downloaded / total;
         console.log(`Downloaded ${(percent * 100).toFixed(2)}%`);
+        await (new Promise((resolve) => { setTimeout(() => {}, 100); }));
     });
 
     stream.on('finish', () => {

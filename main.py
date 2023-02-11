@@ -24,7 +24,7 @@ long term
 
 
 seed_song = spotifyapi.Song(
-    "https://open.spotify.com/track/3BDcHGw6wUIisZJw0ndKQb?si=f35d00c330434d90"
+    "https://open.spotify.com/track/2rFkefEg2uZMVcmCSbgiJf?si=45274b8ad1444383"
 )
 # seed_song = spotifyapi.Song(input("Input a seed song link: "))
 songs = [seed_song]
