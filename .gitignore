@@ -2,3 +2,5 @@ secret
 __pycache__
 *.mp3
 *.wav
+*.mp4
+*.mov
