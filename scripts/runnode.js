@@ -5,26 +5,35 @@ const { exit } = require("process");
 // find how to insert link to download
 // or LINKS to download
 const args = process.argv;
-
-console.log(args);
-
-// exit();
-const url = "https://www.youtube.com/watch?v=QH2-TGUlwu4"
-
 // download all the songs using ytdl
+function download_audio(parse, download_path) {
+    var split = parse.split("|");
+    var title = split[0];
+    var link = split[1];
+    // console.log(parse.split('|'));
+    var path = download_path + "/" + title + ".mp3";
+    console.log("Downloading", title, "to", path);
 
-var song_name;
-for (var i = 1, song_name = args[i]; i < args.length; i++){
-    console.log(song_name);
+    // why no download?
+    const stream = ytdl(link, {
+        filter: "audioonly",
+        quality: "highestaudio",
+    });
+    stream.pipe(fs.createWriteStream(path));
+    stream.on('progress', (chunkLength, downloaded, total) => {
+        const percent = downloaded / total;
+        console.log(`Downloaded ${(percent * 100).toFixed(2)}%`);
+    });
+
+    stream.on('finish', () => {
+        console.log('Download completed.');
+    });
 }
 
-exit()
-ytdl(url)
-  .pipe(fs.createWriteStream("song.mp3"))
-  .on("finish", () => {
-    console.log("Finished downloading.");
-  });
+var song_name;
+for (var i = 1; i < args.length; i++) {
+    song_name = args[i];
+    download_audio(song_name, "assets");
+}
 
-
-
-
+// exit();
