@@ -1,6 +1,7 @@
 import subprocess
 from . import youtubehandler
 
+import os
 from typing import List
 
 
@@ -8,12 +9,16 @@ from typing import List
 # function
 
 
-def download_songs(songs: List[str]):
+def download_songs(songs: List[str], path: str = "assets"):
     """Download songs from youtube"""
+    # check if path exists
+    if not os.path.exists(path):
+        os.mkdir(path)
+
     # Read the Node.js script
     node_script = open("scripts/runnode.js", "r").read()
     # get links for videos -- to collect songs
-    custom_vars = [youtubehandler.search(name) for name in songs]
+    custom_vars = [path] + [youtubehandler.search(name) for name in songs]
     # print(custom_vars)
     command = ["node", "-e", node_script] + custom_vars
     # Create a Node.js process
@@ -22,10 +27,10 @@ def download_songs(songs: List[str]):
     output, error = process.communicate()
     # Print the output of the Node.js process
     print(output.decode().strip())
-    print(error) # outputs None
+    print(error)  # outputs None
 
     # generate a list of paths to downloaded files
-    return ["assets/" + x.split("|")[0] + ".mp3" for x in custom_vars]
+    return [os.path.join(path, x.split("|")[0] + ".mp3") for x in custom_vars]
 
 
 def save_paths_to_file(paths: List[str], file_path: str):

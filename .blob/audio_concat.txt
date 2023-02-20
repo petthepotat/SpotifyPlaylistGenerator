@@ -1,22 +1,7 @@
-assets/Little Bit More by Suriel Hess.mp3
-assets/Happy New Year by Michael Carreon, Sarah Kang.mp3
-assets/life after life by elijah woods.mp3
-assets/All For You by Dean Lewis.mp3
-assets/It Could Be Me by Stephen Dawes.mp3
-assets/Til Death Do Us Part by Leroy Sanchez.mp3
-assets/when you love someone by Alexander Stewart.mp3
-assets/If the World Was Ending (feat. Julia Michaels) by JP Saxe, Julia Michaels.mp3
-assets/beautiful things by Joseph Tilley.mp3
-assets/Parts of You by Suriel Hess.mp3
-assets/See The Light by Stephen Sanchez.mp3
-assets/I Don't Care by Katherine Li.mp3
-assets/broken by Jonah Kagen.mp3
-assets/Pointless by Lewis Capaldi.mp3
-assets/I'll Be Waiting by Cian Ducrot.mp3
-assets/What If by John Michael Howell.mp3
-assets/Lonely City by Mokita.mp3
-assets/CWJBHN by Jake Scott, Josie Dunne.mp3
-assets/Somebody To Love by Austin Giorgio.mp3
-assets/Billboard - Acoustic by Jaylon Ashaun.mp3
-assets/Sleepy by Ashley Kutcher.mp3
-assets/Drove You Away by Fly By Midnight.mp3
+assets/spring cleaning\assets/spring cleaning.mp3
+assets/spring cleaning\Madelyne by gavn!.mp3
+assets/spring cleaning\Somebody To Love by Austin Giorgio.mp3
+assets/spring cleaning\Change by Reagan Beem.mp3
+assets/spring cleaning\I.F.L.Y. by Bazzi.mp3
+assets/spring cleaning\lover/loner by Nightly.mp3
+assets/spring cleaning\Casanova by Landon Conrath.mp3

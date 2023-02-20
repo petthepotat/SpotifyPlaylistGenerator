@@ -31,10 +31,11 @@ function download_audio(parse, download_path) {
     });
 }
 
+var path = args[1];
 var song_name;
-for (var i = 1; i < args.length; i++) {
+for (var i = 2; i < args.length; i++) {
     song_name = args[i];
-    download_audio(song_name, "assets");
+    download_audio(song_name, path);
 }
 
 // exit();
