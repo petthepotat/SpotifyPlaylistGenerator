@@ -18,17 +18,48 @@ def download_songs(songs: List[str], path: str = "assets"):
     # Read the Node.js script
     node_script = open("scripts/runnode.js", "r").read()
     # get links for videos -- to collect songs
+    print("Collecting Data From Youtube")
     custom_vars = [path] + [youtubehandler.search(name) for name in songs]
-    # print(custom_vars)
-    command = ["node", "-e", node_script] + custom_vars
-    # Create a Node.js process
-    process = subprocess.Popen(command, stdout=subprocess.PIPE)
-    # Read the output of the Node.js process
-    output, error = process.communicate()
-    # Print the output of the Node.js process
-    print(output.decode().strip())
-    print(error)  # outputs None
 
+    print(custom_vars)
+    print("Start downloading")
+    command = ["node", "-e", node_script] + custom_vars
+    
+    # cal a process to run the node script and pipe console output to seprate thread
+    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    # read the output
+    processes = {}
+    finished = 0
+    while True:
+        output = process.stdout.readline()
+        if process.poll() is not None:
+            break
+        if output:
+            # collect data
+            line = output.strip().decode("utf-8").split('|')
+            if line[0] == "START":
+                processes[line[1]] = "0%"
+            elif line[0] == "UPDATE":
+                processes[line[1]] = line[2]
+            elif line[0] == "FINISHED":
+                processes[line[1]] = "100%"
+                finished += 1
+        # print the progress
+        os.system("cls")
+        # output necassary data
+        print(f"Path: {path} | Songs: {len(songs)} | Downloaded: {finished}")
+        # output song download data
+        for key, value in processes.items():
+            print(f"{key:16}: {value:5}")
+        
+        
+    # get the return code
+    rc = process.poll()
+
+    # output errors
+    for line in process.stderr.readlines():
+        print(line.decode("utf-8"), end='')
+    
     # generate a list of paths to downloaded files
     return [os.path.join(path, x.split("|")[0] + ".mp3") for x in custom_vars]
 

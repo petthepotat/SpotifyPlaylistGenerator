@@ -2,6 +2,7 @@ import youtube_dl
 import requests
 import re
 import os
+from . import utils
 
 
 # ------------------------------- #
@@ -41,4 +42,4 @@ def search(prompt: str, limit: int = 5):
     # get a list of urls
     BASE = "https://www.youtube.com/watch?v="
     # print(results)
-    return f'{prompt}|{BASE + results[0]["url"]}'
+    return f'{utils.remove_illegal_file_chars(str(prompt))}|{BASE + results[0]["url"]}'
